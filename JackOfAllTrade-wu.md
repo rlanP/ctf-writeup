@@ -56,5 +56,105 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 43.05 seconds
 
 ```
-I see that http and ssh service port location are swapped, ssh usually are on port 22 and http on port 80, this is not normal.
+I see that http and ssh service port location are swapped, ssh usually are on port 22 and http on port 80, this is not normal.  
 
+Next is to run gobuster to bruteforce directories and file on the website, because the ports are diffrent, i need to specify the port on gobuster by adding :22 on the end of the url
+`
+http://MACHINE-IP:22
+`  
+```
+gobuster dir -u http://10.49.177.121:22 -w /usr/share/wordlists/dirb/big.txt
+
+===============================================================
+Gobuster v3.8
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://10.49.177.121:22
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/dirb/big.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.8
+[+] Timeout:                 10s
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+/.htpasswd            (Status: 403) [Size: 278]
+/.htaccess            (Status: 403) [Size: 278]
+/assets               (Status: 301) [Size: 318] [--> http://10.49.177.121:22/assets/]
+/server-status        (Status: 403) [Size: 278]
+Progress: 20469 / 20469 (100.00%)
+===============================================================
+Finished
+===============================================================
+
+```
+## Getting User  
+
+when trying to access the web through a browser and specifying port 22 it will give ERR_UNSAFE_PORT, to fix this i follow the tutorial in this link https://thegeekpage.com/err-unsafe-port/
+
+Checking the main page source there is a comment and a base64
+```
+	<!--Note to self - If I ever get locked out I can get back in at /recovery.php! -->
+			<!--  UmVtZW1iZXIgdG8gd2lzaCBKb2hueSBHcmF2ZXMgd2VsbCB3aXRoIGhpcyBjcnlwdG8gam9iaHVudGluZyEgSGlzIGVuY29kaW5nIHN5c3RlbXMgYXJlIGFtYXppbmchIEFsc28gZ290dGEgcmVtZW1iZXIgeW91ciBwYXNzd29yZDogdT9XdEtTcmFxCg== -->
+```
+decoding the base64 will give this output:  
+`Remember to wish Johny Graves well with his crypto jobhunting! His encoding systems are amazing! Also gotta remember your password: u?WtKSraq`
+I got a password but we got no user and no place to use it, next i try opening /recovery.php 
+inside is something that look like a login page, we got a password but no user, i try jack and the password but it failed.
+after that i check /assets and see three jpg files and a .css file, seeing one of the jpg called `stego.jpg` it remind me of steghide, seeing there is nothing on the css files i download `stego.jpg` to analyze it with steghide.
+
+Using the password we got as the passphrase we got a file called creds.txt.
+```
+└─# steghide info stego.jpg             
+"stego.jpg":
+  format: jpeg
+  capacity: 1.9 KB
+Try to get information about embedded data ? (y/n) y
+Enter passphrase: 
+  embedded file "creds.txt":
+    size: 58.0 Byte
+    encrypted: rijndael-128, cbc
+    compressed: yes
+└─# steghide --extract -sf stego.jpg
+Enter passphrase: 
+wrote extracted data to "creds.txt".
+                                                                                                                                                                                                                                            
+┌──(root㉿kali)-[/home/kali/thm/JackOffTrade]
+└─# cat creds.txt    
+Hehe. Gotcha!
+
+You're on the right path, but wrong image!
+         
+```
+Damn, but knowing that we got the wrong image, i download the other images on /assets which is `header.jpg` and `jackinthebox.jpg`
+first i try running steghide on  `header.jpg` 
+```
+┌──(root㉿kali)-[/home/kali/thm/JackOffTrade]
+└─# steghide info header.jpg         
+"header.jpg":
+  format: jpeg
+  capacity: 3.5 KB
+Try to get information about embedded data ? (y/n) y
+Enter passphrase: 
+  embedded file "cms.creds":
+    size: 93.0 Byte
+    encrypted: rijndael-128, cbc
+    compressed: yes
+                                                                                                                                                                                                                                            
+┌──(root㉿kali)-[/home/kali/thm/JackOffTrade]
+└─# steghide --extract -sf header.jpg
+Enter passphrase: 
+wrote extracted data to "cms.creds".
+                                                                                                                                                                                                                                            
+┌──(root㉿kali)-[/home/kali/thm/JackOffTrade]
+└─# cat cms.creds
+Here you go Jack. Good thing you thought ahead!
+
+Username: jackinthebox
+Password: TplFxiSHjY
+                                                                                                                                                                                                                                            
+┌──(root㉿kali)-[/home/kali/thm/JackOffTrade]
+└─# 
+```
+I got a credential, lets try it on /recovery.php
