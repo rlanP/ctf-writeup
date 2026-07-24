@@ -103,3 +103,44 @@ On arrival a picture was taken of the suspect's machine, on it, you could see th
 
 To complete your forensic timeline, you should also have a look at what other information you can find, when was the last time John turned off his computer?
 
+---
+
+Because we are given a new file for this question, we need to check again the Operating system being used.
+
+    python3 vol.py -f <memory file> windows.info
+
+We now know the system are using windows.
+
+The first question ask for the machine last shutdown, this is usually stored in registry hive, windows actually keeps active registry in memory, with that information we can try to find the registry being loaded.
+
+The first thing to do is to find what hive are currently being loaded:
+
+    python3 vol.py -f <memory file> windows.registry.hivelist
+
+***Result:***  
+```
+└─# python3 vol.py -f /media/sf_Documents/TryHackMe/memoryforensic/Snapshot19_1609159453792.vmem  windows.registry.hivelist
+Volatility 3 Framework 2.28.1
+WARNING  volatility3.framework.layers.vmware: No metadata file found alongside VMEM file. A VMSS or VMSN file may be required to correctly process a VMEM file. These should be placed in the same directory with the same file name, e.g. Snapshot19_1609159453792.vmem and Snapshot19_1609159453792.vmss.
+Progress:  100.00               PDB scanning finished                        
+Offset  FileFullPath    File output
+
+0xf8a00000f010          Disabled
+0xf8a000024010  \REGISTRY\MACHINE\SYSTEM        Disabled
+0xf8a000061010  \REGISTRY\MACHINE\HARDWARE      Disabled
+0xf8a0000f7010  \SystemRoot\System32\Config\DEFAULT     Disabled
+0xf8a0007ac010  \Device\HarddiskVolume1\Boot\BCD        Disabled
+0xf8a001502010  \SystemRoot\System32\Config\SOFTWARE    Disabled
+0xf8a001674410  \SystemRoot\System32\Config\SECURITY    Disabled
+0xf8a0016dc410  \SystemRoot\System32\Config\SAM Disabled
+0xf8a0016f7010  \??\C:\Windows\ServiceProfiles\NetworkService\NTUSER.DAT        Disabled
+0xf8a0017a9010  \??\C:\Windows\ServiceProfiles\LocalService\NTUSER.DAT  Disabled
+0xf8a00196c010  \??\C:\Users\John\ntuser.dat    Disabled
+0xf8a00197f010  \??\C:\Users\John\AppData\Local\Microsoft\Windows\UsrClass.dat  Disabled
+0xf8a0024e4010  \??\C:\System Volume Information\Syscache.hve   Disabled
+                                                                                                                                                             
+```
+
+The SYSTEM registry hive is loaded in memory. Because the last shutdown time is stored in this hive, we can inspect it to recover the ShutdownTime value.  
+
+
