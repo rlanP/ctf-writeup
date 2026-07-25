@@ -234,3 +234,60 @@ After converting the `ShutdownTime` value, we obtain the following timestamp:
 ```
 
 This indicates that the machine was last shut down on **`<REDACTED>`**.
+
+Next is to find what was written in command prompt.
+I first tried `windows.consoles` in Volatility 3, but it returned an error because Windows 7 SP1 isn't supported. `windows.cmdscan` also failed since it uses the same console parser, so I switched to Volatility 2.
+
+```
+vol.py -f <Memoru File> --profile=Win7SP1x64 consoles
+```
+
+Result:
+```
+**************************************************
+ConsoleProcess: conhost.exe Pid: 2488
+Console: 0xffa66200 CommandHistorySize: 50
+HistoryBufferCount: 1 HistoryBufferMax: 4
+OriginalTitle: %SystemRoot%\System32\cmd.exe
+Title: Administrator: C:\Windows\System32\cmd.exe
+AttachedProcess: cmd.exe Pid: 1920 Handle: 0x60
+----
+CommandHistory: 0x21e9c0 Application: cmd.exe Flags: Allocated, Reset
+CommandCount: 7 LastAdded: 6 LastDisplayed: 6
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x60
+Cmd #0 at 0x1fe3a0: cd /
+Cmd #1 at 0x1f78b0: echo THM{<REDACTED>} > test.txt
+Cmd #2 at 0x21dcf0: cls
+Cmd #3 at 0x1fe3c0: cd /Users
+Cmd #4 at 0x1fe3e0: cd /John
+Cmd #5 at 0x21db30: dir
+Cmd #6 at 0x1fe400: cd John
+----
+Screen 0x200f70 X:80 Y:300
+Dump:
+                                                                                
+C:\>cd /Users                                                                   
+                                                                                
+C:\Users>cd /John                                                               
+The system cannot find the path specified.                                      
+                                                                                
+C:\Users>dir                                                                    
+ Volume in drive C has no label.                                                
+ Volume Serial Number is 1602-421F                                              
+                                                                                
+ Directory of C:\Users                                                          
+                                                                                
+12/27/2020  02:20 AM    <DIR>          .                                        
+12/27/2020  02:20 AM    <DIR>          ..                                       
+12/27/2020  02:21 AM    <DIR>          John                                     
+04/12/2011  08:45 AM    <DIR>          Public                                   
+               0 File(s)              0 bytes                                   
+               4 Dir(s)  54,565,433,344 bytes free                              
+                                                                                
+C:\Users>cd John                                                                
+                                                                                
+C:\Users\John>            
+```
+
+We found the command that is written on command prompt!
