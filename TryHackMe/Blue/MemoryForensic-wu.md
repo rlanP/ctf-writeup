@@ -143,4 +143,94 @@ Offset  FileFullPath    File output
 
 The SYSTEM registry hive is loaded in memory. Because the last shutdown time is stored in this hive, we can inspect it to recover the ShutdownTime value.  
 
+Windows can contain multiple ControlSet, each one can contain diffrent value, we need to see the one currently being used to find the value we are looking for, we can use this command to find the current control set:  
 
+```
+python3 vol.py -f <memory file> windows.registry.printkey --key "Select"
+
+```
+
+```
+Volatility 3 Framework 2.28.2
+WARNING  volatility3.framework.layers.vmware: No metadata file found alongside VMEM file. A VMSS or VMSN file may be required to correctly process a VMEM file. These should be placed in the same directory with the same file name, e.g. Snapshot19_1609159453792.vmem and Snapshot19_1609159453792.vmss.
+Progress:  100.00               PDB scanning finished                        
+Last Write Time Hive Offset     Type    Key     Name    Data    Volatile
+
+-       0xf8a00000f010  Key     [NONAME]\Select -       -       -
+2009-07-14 05:08:22.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\Select Current 1       False
+2009-07-14 05:08:22.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\Select Default 1       False
+2009-07-14 05:08:22.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\Select Failed  0       False
+2009-07-14 05:08:22.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\Select LastKnownGood   2       False
+-       0xf8a000061010  Key     \REGISTRY\MACHINE\HARDWARE\Select       -       -       -
+-       0xf8a0000f7010  Key     \SystemRoot\System32\Config\DEFAULT\Select      -       -       -
+-       0xf8a0007ac010  Key     \Device\HarddiskVolume1\Boot\BCD\Select -       -       -
+-       0xf8a001502010  Key     \SystemRoot\System32\Config\SOFTWARE\Select     -       -       -
+-       0xf8a001674410  Key     \SystemRoot\System32\Config\SECURITY\Select     -       -       -
+-       0xf8a0016dc410  Key     \SystemRoot\System32\Config\SAM\Select  -       -       -
+-       0xf8a0016f7010  Key     \??\C:\Windows\ServiceProfiles\NetworkService\NTUSER.DAT\Select -       -       -
+-       0xf8a0017a9010  Key     \??\C:\Windows\ServiceProfiles\LocalService\NTUSER.DAT\Select   -       -       -
+-       0xf8a00196c010  Key     \??\C:\Users\John\ntuser.dat\Select     -       -       -
+-       0xf8a00197f010  Key     \??\C:\Users\John\AppData\Local\Microsoft\Windows\UsrClass.dat\Select   -       -       -
+-       0xf8a0024e4010  Key     \??\C:\System Volume Information\Syscache.hve\Select    -       -       -
+                                                                                          
+```
+The `Select` registry key indicates which ControlSet is currently active. In this case, the `Current` value is set to `1`, meaning that **ControlSet001** is the active ControlSet. Therefore, registry analysis should use `ControlSet001` to ensure the correct configuration values are examined.
+
+```text
+Current = 1
+```
+
+Using the active ControlSet, we can inspect the `ControlSet001\Control\Windows` registry key to retrieve the `ShutdownTime` value.
+
+```
+python3 vol.py -f <memory_file> windows.registry.printkey --key "ControlSet001\Control\Windows"
+```
+Result:  
+```
+┌──(root㉿kali)-[/home/kali/tools/volatility3]
+└─# python3 vol.py -f /media/sf_Documents/TryHackMe/memoryforensic/Snapshot19_1609159453792.vmem  windows.registry.printkey --key "ControlSet001\Control\Windows" 
+Volatility 3 Framework 2.28.2
+WARNING  volatility3.framework.layers.vmware: No metadata file found alongside VMEM file. A VMSS or VMSN file may be required to correctly process a VMEM file. These should be placed in the same directory with the same file name, e.g. Snapshot19_1609159453792.vmem and Snapshot19_1609159453792.vmss.
+Progress:  100.00               PDB scanning finished                        
+Last Write Time Hive Offset     Type    Key     Name    Data    Volatile
+
+-       0xf8a00000f010  Key     [NONAME]\ControlSet001\Control\Windows  -       -       -
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  ErrorMode       0       False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_EXPAND_SZ   \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  Directory       %SystemRoot%    False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  NoInteractiveServices   0       False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_EXPAND_SZ   \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  SystemDirectory %SystemRoot%\system32False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  ShellErrorMode  1       False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  CSDVersion      256     False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  CSDReleaseType  0       False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  CSDBuildNumber  17514   False
+2020-12-27 22:50:12.000000 UTC  0xf8a000024010  REG_DWORD       \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  ComponentizedBuild      1       False
+<REDACTED> UTC  0xf8a000024010  REG_BINARY      \REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Windows  ShutdownTime
+<REDACTED>                         ..P.....                False
+-       0xf8a000061010  Key     \REGISTRY\MACHINE\HARDWARE\ControlSet001\Control\Windows        -       -       -
+-       0xf8a0000f7010  Key     \SystemRoot\System32\Config\DEFAULT\ControlSet001\Control\Windows       -       -       -
+-       0xf8a0007ac010  Key     \Device\HarddiskVolume1\Boot\BCD\ControlSet001\Control\Windows  -       -       -
+-       0xf8a001502010  Key     \SystemRoot\System32\Config\SOFTWARE\ControlSet001\Control\Windows      -       -       -
+-       0xf8a001674410  Key     \SystemRoot\System32\Config\SECURITY\ControlSet001\Control\Windows      -       -       -
+-       0xf8a0016dc410  Key     \SystemRoot\System32\Config\SAM\ControlSet001\Control\Windows   -       -       -
+-       0xf8a0016f7010  Key     \??\C:\Windows\ServiceProfiles\NetworkService\NTUSER.DAT\ControlSet001\Control\Windows  -       -       -
+-       0xf8a0017a9010  Key     \??\C:\Windows\ServiceProfiles\LocalService\NTUSER.DAT\ControlSet001\Control\Windows    -       -       -
+-       0xf8a00196c010  Key     \??\C:\Users\John\ntuser.dat\ControlSet001\Control\Windows      -       -       -
+-       0xf8a00197f010  Key     \??\C:\Users\John\AppData\Local\Microsoft\Windows\UsrClass.dat\ControlSet001\Control\Windows    -       -       -
+-       0xf8a0024e4010  Key     \??\C:\System Volume Information\Syscache.hve\ControlSet001\Control\Windows     -       -       -
+                                                                                                                                                             
+
+```
+
+Since `ShutdownTime` is stored in the Windows FILETIME format, it must be converted into a human-readable timestamp. We can use CyberChef to decode the value.
+
+1. Swap the byte order using [CyberChef](https://gchq.github.io/CyberChef/#recipe=Swap_endianness('Hex',8,true)).
+2. Copy the output and paste it into the [Windows FILETIME Converter](https://inventivehq.com/tools/developer/filetime-converter).
+3. The converter returns the UTC timestamp.
+
+After converting the `ShutdownTime` value, we obtain the following timestamp:
+
+```
+<REDACTED>
+```
+
+This indicates that the machine was last shut down on **`<REDACTED>`**.
