@@ -290,4 +290,67 @@ C:\Users>cd John
 C:\Users\John>            
 ```
 
-We found the command that is written on command prompt!
+We found the command that is written on command prompt!  
+
+
+## Question 4 | What is the TrueCrypt passphrase?
+**Description:**  
+A common task of forensic investigators is looking for hidden partitions and encrypted files, as suspicion arose when TrueCrypt was found on the suspect's machine and an encrypted partition was found. The interrogation did not yield any success in getting the passphrase from the suspect, however, it may be present in the memory dump obtained from the suspect's computer.
+
+---
+
+Volatility2 have a plugin for truecrypt, it can get the passphrase stored in memory, so the first thing to is to get the profile to use for volatility2.
+
+```
+Volatility Foundation Volatility Framework 2.6.1
+*** Failed to import volatility.plugins.malware.apihooks (NameError: name 'distorm3' is not defined)
+*** Failed to import volatility.plugins.malware.threads (NameError: name 'distorm3' is not defined)
+*** Failed to import volatility.plugins.mac.apihooks_kernel (ImportError: No module named distorm3)
+*** Failed to import volatility.plugins.mac.check_syscall_shadow (ImportError: No module named distorm3)
+*** Failed to import volatility.plugins.ssdt (NameError: name 'distorm3' is not defined)
+*** Failed to import volatility.plugins.mac.apihooks (ImportError: No module named distorm3)
+INFO    : volatility.debug    : Determining profile based on KDBG search...
+          Suggested Profile(s) : Win7SP1x64, Win7SP0x64, Win2008R2SP0x64, Win2008R2SP1x64_24000, Win2008R2SP1x64_23418, Win2008R2SP1x64, Win7SP1x64_24000, Win7SP1x64_23418
+                     AS Layer1 : WindowsAMD64PagedMemory (Kernel AS)
+                     AS Layer2 : FileAddressSpace (/media/sf_Documents/TryHackMe/memoryforensic/Snapshot14_1609164553061.vmem)
+                      PAE type : No PAE
+                           DTB : 0x187000L
+                          KDBG : 0xf80002c4d0a0L
+          Number of Processors : 1
+     Image Type (Service Pack) : 1
+                KPCR for CPU 0 : 0xfffff80002c4ed00L
+             KUSER_SHARED_DATA : 0xfffff78000000000L
+           Image date and time : 2020-12-27 13:41:31 UTC+0000
+     Image local date and time : 2020-12-27 05:41:31 -0800
+                                               
+```
+
+The suggested profile is Win7SP1x64 so im going to use that, as i say volatility2 have a plugin for truecrypt and one of its feature is to find and extract the passphrase.
+
+```
+python2 vol.py  -f <memory file> --profile <profile> truecryptpassphrase
+
+```
+
+Result:
+```
+┌──(root㉿kali)-[/home/kali/tools/volatility2/volatility]
+└─# python2 vol.py  -f /media/sf_Documents/TryHackMe/memoryforensic/Snapshot14_1609164553061.vmem --profile Win7SP1x64 truecryptpassphrase
+Volatility Foundation Volatility Framework 2.6.1
+*** Failed to import volatility.plugins.malware.apihooks (NameError: name 'distorm3' is not defined)
+*** Failed to import volatility.plugins.malware.threads (NameError: name 'distorm3' is not defined)
+*** Failed to import volatility.plugins.mac.apihooks_kernel (ImportError: No module named distorm3)
+*** Failed to import volatility.plugins.mac.check_syscall_shadow (ImportError: No module named distorm3)
+*** Failed to import volatility.plugins.ssdt (NameError: name 'distorm3' is not defined)
+*** Failed to import volatility.plugins.mac.apihooks (ImportError: No module named distorm3)
+Found at 0xfffff8800512bee4 length 11: <REDACTED>
+                                                                                                                                                             
+┌──(root㉿kali)-[/home/kali/tools/volatility2/volatility]
+└─# 
+
+```
+
+And we got the passphrase!
+
+## Conclusion
+Even though the room is a little bit old, In my opinion this is a good room for someone who has just the learned the basic of memory forensic, 
